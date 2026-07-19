@@ -38,7 +38,7 @@ struct ManageView: View {
             }
         }
         .padding()
-        .onAppear { model.refreshInstalled() }
+        .task { model.refreshInstalled() }
         .toolbar {
             Button {
                 model.refreshInstalled()

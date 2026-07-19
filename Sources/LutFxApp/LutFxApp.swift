@@ -16,12 +16,19 @@ struct LutFxApp: App {
 struct ContentView: View {
     @EnvironmentObject private var model: AppModel
 
+    private enum Tab: Hashable { case install, manage }
+    @State private var selectedTab = Tab.install
+
     var body: some View {
-        TabView {
+        // Explicit selection keeps the TabView from snapping back to the
+        // first tab when a model publish rebuilds the view mid-switch.
+        TabView(selection: $selectedTab) {
             InstallView()
                 .tabItem { Label("Install", systemImage: "square.and.arrow.down") }
+                .tag(Tab.install)
             ManageView()
                 .tabItem { Label("Manage", systemImage: "slider.horizontal.3") }
+                .tag(Tab.manage)
         }
         .padding(.top, 4)
     }
