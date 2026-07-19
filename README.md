@@ -80,6 +80,29 @@ Delete the effect's folder from
 `~/Library/Application Support/ProApps/Custom LUTs/<category>/` — keep it if
 any project still uses the effect), then restart Final Cut Pro.
 
+## Releasing a new version
+
+Homebrew serves a prebuilt universal binary from the GitHub release, so a
+release is three steps (replace `X.Y.Z`):
+
+```sh
+# 1. Build the universal binary and package it
+swift build -c release --arch arm64 --arch x86_64
+tar -czf lutfx-X.Y.Z-macos-universal.tar.gz -C .build/out/Products/Release lutfx
+
+# 2. Tag and create the GitHub release with the tarball attached
+git tag vX.Y.Z && git push --tags
+gh release create vX.Y.Z lutfx-X.Y.Z-macos-universal.tar.gz --title "vX.Y.Z"
+
+# 3. Point the Homebrew formula at it
+shasum -a 256 lutfx-X.Y.Z-macos-universal.tar.gz
+# then update `url` and `sha256` in Formula/lutfx.rb of
+# https://github.com/avis001/homebrew-tap and push
+```
+
+Verify with `brew update && brew upgrade lutfx` (or a fresh
+`brew install avis001/tap/lutfx`).
+
 ## How it works (reverse-engineered formats)
 
 Verified against Final Cut Pro 11.x on macOS:
