@@ -1,11 +1,15 @@
 # Agent notes for fcpLutToEffect (lutfx)
 
-Swift Package producing the `lutfx` CLI: converts `.cube` LUT files into
-individual Final Cut Pro effects. Read README.md first — especially
-"How it works (reverse-engineered formats)"; the serialization details there
-are load-bearing and were verified against FCP's binaries. Don't change hash
-computation, blob nesting, or the `.moef` template structure without re-reading
-that section.
+Swift Package that converts `.cube` LUT files into individual Final Cut Pro
+effects. Two targets: `LutFxKit` (Sources/LutFxKit — all format/install
+logic, public API) and `lutfx` (Sources/lutfx — thin CLI over the kit). A
+future macOS app target will also depend on LutFxKit; put new logic in the
+kit, not the CLI.
+
+Read README.md first — especially "How it works (reverse-engineered
+formats)"; the serialization details there are load-bearing and were verified
+against FCP's binaries. Don't change hash computation, blob nesting, or the
+`.moef` template structure without re-reading that section.
 
 ## Build & test
 
@@ -33,6 +37,6 @@ The universal-build output lands in `.build/out/Products/Release/lutfx`
 
 - Default branch is `develop`.
 - The `.moef` XML template is an inline string in
-  `Sources/lutfx/MoefTemplate.swift`; object/parameter IDs in it mirror
+  `Sources/LutFxKit/MoefTemplate.swift`; object/parameter IDs in it mirror
   Apple's built-in color-preset templates and are referenced by the
   publishSettings targets — keep them consistent if editing.

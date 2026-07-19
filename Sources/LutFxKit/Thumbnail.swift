@@ -6,8 +6,8 @@ import UniformTypeIdentifiers
 
 /// Renders Effects-browser thumbnails (large.png 640x360, small.png 192x108):
 /// a colorful reference gradient passed through the LUT via CIColorCube.
-enum Thumbnail {
-    static func write(lut: CubeLUT, largeURL: URL, smallURL: URL) -> Bool {
+public enum Thumbnail {
+    public static func write(lut: CubeLUT, largeURL: URL, smallURL: URL) -> Bool {
         guard let base = baseImage(width: 640, height: 360),
               let graded = apply(lut: lut, to: base) else { return false }
         return writePNG(graded, size: CGSize(width: 640, height: 360), to: largeURL)

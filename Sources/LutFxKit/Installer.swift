@@ -2,22 +2,29 @@ import Foundation
 
 /// Copies the .cube into FCP's Custom LUTs repository and writes the effect
 /// template into the user's Motion Templates folder.
-struct Installer {
-    let category: String
-    let force: Bool
-    let dryRun: Bool
-    let makeThumbnails: Bool
+public struct Installer {
+    public let category: String
+    public let force: Bool
+    public let dryRun: Bool
+    public let makeThumbnails: Bool
 
     private let fm = FileManager.default
 
-    var lutRepositoryRoot: URL {
+    public init(category: String, force: Bool, dryRun: Bool, makeThumbnails: Bool) {
+        self.category = category
+        self.force = force
+        self.dryRun = dryRun
+        self.makeThumbnails = makeThumbnails
+    }
+
+    public var lutRepositoryRoot: URL {
         fm.homeDirectoryForCurrentUser
             .appendingPathComponent("Library/Application Support/ProApps/Custom LUTs", isDirectory: true)
     }
 
     /// Prefer the folder variants that already exist (FCP creates the
     /// ".localized" flavor); fall back to creating the plain names.
-    var effectsRoot: URL {
+    public var effectsRoot: URL {
         let movies = fm.homeDirectoryForCurrentUser.appendingPathComponent("Movies", isDirectory: true)
         let templates = ["Motion Templates.localized", "Motion Templates"]
             .map { movies.appendingPathComponent($0, isDirectory: true) }
@@ -27,12 +34,12 @@ struct Installer {
         return effects.first { fm.fileExists(atPath: $0.path) } ?? effects[0]
     }
 
-    struct Result {
-        var effectName: String
-        var status: String
+    public struct Result {
+        public var effectName: String
+        public var status: String
     }
 
-    func install(cubeFile: URL) throws -> Result {
+    public func install(cubeFile: URL) throws -> Result {
         let effectName = sanitize(cubeFile.deletingPathExtension().lastPathComponent)
         let effectDir = effectsRoot
             .appendingPathComponent(category, isDirectory: true)

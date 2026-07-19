@@ -3,20 +3,20 @@ import Foundation
 /// Minimal .cube parser — enough to validate a file and drive thumbnail
 /// rendering. FCP itself re-parses the installed file, so this does not need
 /// to cover every vendor quirk; unknown keywords are ignored.
-struct CubeLUT {
-    var size3D: Int?
-    var size1D: Int?
-    var title: String?
+public struct CubeLUT {
+    public var size3D: Int?
+    public var size1D: Int?
+    public var title: String?
     /// RGB triples in file order (red index varies fastest).
-    var values: [Float] = []
+    public var values: [Float] = []
 
-    var isValid: Bool {
+    public var isValid: Bool {
         if let n = size3D { return values.count == n * n * n * 3 }
         if let n = size1D { return values.count == n * 3 }
         return false
     }
 
-    static func parse(_ data: Data) throws -> CubeLUT {
+    public static func parse(_ data: Data) throws -> CubeLUT {
         guard let text = String(data: data, encoding: .utf8)
             ?? String(data: data, encoding: .isoLatin1) else {
             throw LutfxError.invalidCube("file is not text")
@@ -51,11 +51,11 @@ struct CubeLUT {
     }
 }
 
-enum LutfxError: Error, CustomStringConvertible {
+public enum LutfxError: Error, CustomStringConvertible {
     case invalidCube(String)
     case io(String)
 
-    var description: String {
+    public var description: String {
         switch self {
         case .invalidCube(let why): return "invalid .cube file: \(why)"
         case .io(let why): return why

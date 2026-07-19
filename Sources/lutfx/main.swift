@@ -1,4 +1,5 @@
 import Foundation
+import LutFxKit
 
 let usage = """
 lutfx — install .cube LUTs as individual Final Cut Pro effects
