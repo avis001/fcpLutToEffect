@@ -26,7 +26,10 @@ swift build -c release
 
 A SwiftUI companion app wraps the same engine: drag `.cube` files or folders
 into the window, see a live preview of every LUT before installing, and manage
-(or uninstall) previously installed effects from the Manage tab.
+(or uninstall) previously installed effects from the Manage tab. Drop in a
+screenshot of your own footage (JPEG/PNG/HEIC) and every preview — and the
+installed effect thumbnails — render on your image instead of the reference
+gradient.
 
 ```sh
 Scripts/make-app.sh          # builds dist/LutFx.app (ad-hoc signed)
@@ -60,6 +63,10 @@ OPTIONS:
   --force             Overwrite effects that already exist
   --dry-run           Show what would happen without writing anything
   --no-thumbnails     Skip generating effect thumbnails
+  --thumbnail-image <path>
+                      Render effect thumbnails from this image (e.g. a still
+                      from your footage) instead of the built-in gradient
+  --list-installed    List installed LUT effects and exit
 ```
 
 Example:
