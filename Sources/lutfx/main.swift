@@ -13,6 +13,7 @@ OPTIONS:
   --force             Overwrite effects that already exist
   --dry-run           Show what would happen without writing anything
   --no-thumbnails     Skip generating effect thumbnails
+  --list-installed    List installed LUT effects and exit (no input path needed)
   -h, --help          Show this help
 
 Each .cube file becomes one effect in Final Cut Pro's Effects browser under the
@@ -37,6 +38,22 @@ while !args.isEmpty {
     case "--force": force = true
     case "--dry-run": dryRun = true
     case "--no-thumbnails": thumbnails = false
+    case "--list-installed":
+        let root = Installer(category: "", force: false, dryRun: true, makeThumbnails: false).effectsRoot
+        let effects = EffectLibrary.installedEffects(effectsRoot: root)
+        if effects.isEmpty {
+            print("No installed LUT effects found in \(root.path)")
+        } else {
+            var lastCategory = ""
+            for effect in effects {
+                if effect.category != lastCategory {
+                    print("\(effect.category)/")
+                    lastCategory = effect.category
+                }
+                print("  \(effect.name)")
+            }
+        }
+        exit(0)
     case "-h", "--help":
         print(usage)
         exit(0)

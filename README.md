@@ -22,6 +22,21 @@ Or build from source:
 swift build -c release
 ```
 
+## The app
+
+A SwiftUI companion app wraps the same engine: drag `.cube` files or folders
+into the window, see a live preview of every LUT before installing, and manage
+(or uninstall) previously installed effects from the Manage tab.
+
+```sh
+Scripts/make-app.sh          # builds dist/LutFx.app (ad-hoc signed)
+open dist/LutFx.app
+```
+
+The app bundle is currently ad-hoc signed — fine for building on your own
+machine; public distribution needs a Developer ID + notarization (see the
+roadmap in AGENTS.md).
+
 The binary is self-contained at `.build/release/lutfx`. Optionally put it on
 your PATH so you can run `lutfx` from anywhere:
 

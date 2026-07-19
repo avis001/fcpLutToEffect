@@ -14,6 +14,14 @@ public enum Thumbnail {
             && writePNG(graded, size: CGSize(width: 192, height: 108), to: smallURL)
     }
 
+    /// In-memory preview of the LUT applied to the reference gradient, for UI.
+    public static func previewImage(lut: CubeLUT, width: Int = 320, height: Int = 180) -> CGImage? {
+        guard let base = baseImage(width: width, height: height),
+              let graded = apply(lut: lut, to: base) else { return nil }
+        let ciContext = CIContext(options: [.useSoftwareRenderer: false])
+        return ciContext.createCGImage(graded, from: CGRect(x: 0, y: 0, width: width, height: height))
+    }
+
     // A hue sweep with a vertical white->black falloff plus a neutral gray ramp
     // along the bottom, so both color shifts and tone curves are visible.
     private static func baseImage(width: Int, height: Int) -> CGImage? {
