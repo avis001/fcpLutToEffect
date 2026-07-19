@@ -8,7 +8,15 @@ No Motion, no FxPlug plugin, no code signing: each effect is a generated Motion
 template (`.moef`) that wraps FCP's own built-in **Custom LUT** filter
 (`PAELUTEffect`) with the LUT pre-selected.
 
-## Build & install
+## Install
+
+Via Homebrew (universal binary, macOS 13+):
+
+```sh
+brew install avis001/tap/lutfx
+```
+
+Or build from source:
 
 ```sh
 swift build -c release
