@@ -27,6 +27,12 @@ struct LutItem: Identifiable {
     }
 }
 
+/// CGImage is immutable; box it so it can hop across task boundaries without
+/// sendability warnings.
+struct ImageBox: @unchecked Sendable {
+    let image: CGImage
+}
+
 @MainActor
 final class AppModel: ObservableObject {
     // Install tab
@@ -35,6 +41,9 @@ final class AppModel: ObservableObject {
     @Published var overwrite = false
     @Published var isInstalling = false
     @Published var finishedInstall = false
+    /// User-chosen screenshot the previews/thumbnails are rendered on
+    /// (nil = the synthetic gradient).
+    @Published var previewSource: CGImage?
 
     // Manage tab
     @Published var installed: [EffectLibrary.Effect] = []
@@ -43,6 +52,8 @@ final class AppModel: ObservableObject {
 
     // MARK: - Adding LUTs
 
+    private static let imageExtensions: Set<String> = ["jpg", "jpeg", "png", "heic", "tiff", "tif", "webp", "bmp"]
+
     func addURLs(_ urls: [URL]) {
         finishedInstall = false
         var cubeFiles: [URL] = []
@@ -50,6 +61,10 @@ final class AppModel: ObservableObject {
         for url in urls {
             var isDir: ObjCBool = false
             guard fm.fileExists(atPath: url.path, isDirectory: &isDir) else { continue }
+            if !isDir.boolValue, Self.imageExtensions.contains(url.pathExtension.lowercased()) {
+                setPreviewImage(from: url)
+                continue
+            }
             if isDir.boolValue {
                 if category == "LUTs" || category.isEmpty {
                     category = url.lastPathComponent
@@ -76,22 +91,25 @@ final class AppModel: ObservableObject {
     /// Parse the cube and render its preview off the main thread.
     private func prepare(_ url: URL) async {
         struct Prepared {
-            var preview: CGImage?
+            var preview: ImageBox?
             var sizeLabel: String
             var error: String?
         }
+        let source = previewSource.map(ImageBox.init)
         let result: Prepared = await Task.detached(priority: .userInitiated) {
             do {
                 let lut = try CubeLUT.parse(try Data(contentsOf: url))
                 let label = lut.size3D.map { "\($0)\u{00B3}" } ?? lut.size1D.map { "1D \($0)" } ?? ""
-                let preview = lut.size3D != nil ? Thumbnail.previewImage(lut: lut, width: 192, height: 108) : nil
-                return Prepared(preview: preview, sizeLabel: label, error: nil)
+                let preview = lut.size3D != nil
+                    ? Thumbnail.previewImage(lut: lut, source: source?.image, width: 192, height: 108)
+                    : nil
+                return Prepared(preview: preview.map(ImageBox.init), sizeLabel: label, error: nil)
             } catch {
                 return Prepared(preview: nil, sizeLabel: "", error: "\(error)")
             }
         }.value
         guard let index = items.firstIndex(where: { $0.url == url }) else { return }
-        items[index].preview = result.preview
+        items[index].preview = result.preview?.image
         items[index].sizeLabel = result.sizeLabel
         items[index].state = result.error.map { .invalid($0) } ?? .ready
     }
@@ -101,6 +119,35 @@ final class AppModel: ObservableObject {
         finishedInstall = false
     }
 
+    // MARK: - Preview source image
+
+    func setPreviewImage(from url: URL) {
+        Task {
+            let loaded = await Task.detached(priority: .userInitiated) {
+                Thumbnail.loadImage(url: url, width: 640, height: 360).map(ImageBox.init)
+            }.value
+            guard let loaded else { return }
+            previewSource = loaded.image
+            reRenderPreviews()
+        }
+    }
+
+    func clearPreviewImage() {
+        previewSource = nil
+        reRenderPreviews()
+    }
+
+    private func reRenderPreviews() {
+        for index in items.indices {
+            if case .invalid = items[index].state { continue }
+            items[index].state = .pending
+            items[index].preview = nil
+        }
+        for item in items {
+            Task { await self.prepare(item.url) }
+        }
+    }
+
     // MARK: - Installing
 
     func installAll() async {
@@ -108,7 +155,8 @@ final class AppModel: ObservableObject {
         isInstalling = true
         finishedInstall = false
         let installer = Installer(category: sanitizedCategory, force: overwrite,
-                                  dryRun: false, makeThumbnails: true)
+                                  dryRun: false, makeThumbnails: true,
+                                  thumbnailSource: previewSource)
         for index in items.indices where items[index].isInstallable {
             items[index].state = .installing
             let url = items[index].url

@@ -1,20 +1,26 @@
 import Foundation
+import CoreGraphics
 
 /// Copies the .cube into FCP's Custom LUTs repository and writes the effect
 /// template into the user's Motion Templates folder.
-public struct Installer {
+public struct Installer: @unchecked Sendable {
     public let category: String
     public let force: Bool
     public let dryRun: Bool
     public let makeThumbnails: Bool
+    /// Optional user image the effect thumbnails are rendered from (instead
+    /// of the synthetic gradient).
+    public let thumbnailSource: CGImage?
 
     private let fm = FileManager.default
 
-    public init(category: String, force: Bool, dryRun: Bool, makeThumbnails: Bool) {
+    public init(category: String, force: Bool, dryRun: Bool, makeThumbnails: Bool,
+                thumbnailSource: CGImage? = nil) {
         self.category = category
         self.force = force
         self.dryRun = dryRun
         self.makeThumbnails = makeThumbnails
+        self.thumbnailSource = thumbnailSource
     }
 
     public var lutRepositoryRoot: URL {
@@ -76,7 +82,8 @@ public struct Installer {
             if makeThumbnails, lut.size3D != nil {
                 _ = Thumbnail.write(lut: lut,
                                     largeURL: effectDir.appendingPathComponent("large.png"),
-                                    smallURL: effectDir.appendingPathComponent("small.png"))
+                                    smallURL: effectDir.appendingPathComponent("small.png"),
+                                    source: thumbnailSource)
             }
         }
 

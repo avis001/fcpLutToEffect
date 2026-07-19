@@ -21,7 +21,7 @@ struct InstallView: View {
         .padding()
         .onDrop(of: [.fileURL], isTargeted: $dropTargeted) { handleDrop($0) }
         .fileImporter(isPresented: $showingImporter,
-                      allowedContentTypes: [.folder, Self.cubeType],
+                      allowedContentTypes: [.folder, Self.cubeType, .image],
                       allowsMultipleSelection: true) { result in
             if case .success(let urls) = result { model.addURLs(urls) }
         }
@@ -37,6 +37,9 @@ struct InstallView: View {
             Text("Each LUT becomes its own effect in Final Cut Pro's Effects browser.")
                 .foregroundStyle(.secondary)
             Button("Choose Files…") { showingImporter = true }
+            Text("Tip: also drop a screenshot (JPEG/PNG/HEIC) to preview the LUTs on your own footage.")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(
@@ -68,6 +71,30 @@ struct InstallView: View {
                 Label("Done. Restart Final Cut Pro, then look in Effects browser → \(model.sanitizedCategory).",
                       systemImage: "checkmark.circle.fill")
                     .foregroundStyle(.green)
+            }
+            HStack(spacing: 8) {
+                if let source = model.previewSource {
+                    Image(decorative: source, scale: 1)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 48, height: 27)
+                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                    Text("Previewing on your image — thumbnails will use it too.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Button {
+                        model.clearPreviewImage()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Back to the gradient preview")
+                } else {
+                    Text("Previewing on the reference gradient — drop a screenshot to use your own footage.")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                Spacer()
             }
             HStack(spacing: 12) {
                 TextField("Category", text: $model.category)

@@ -7,19 +7,53 @@ import UniformTypeIdentifiers
 /// Renders Effects-browser thumbnails (large.png 640x360, small.png 192x108):
 /// a colorful reference gradient passed through the LUT via CIColorCube.
 public enum Thumbnail {
-    public static func write(lut: CubeLUT, largeURL: URL, smallURL: URL) -> Bool {
-        guard let base = baseImage(width: 640, height: 360),
+    /// `source` (if given) replaces the synthetic gradient as the image the
+    /// LUT is applied to — e.g. a user-supplied screenshot of their footage.
+    public static func write(lut: CubeLUT, largeURL: URL, smallURL: URL, source: CGImage? = nil) -> Bool {
+        guard let base = base(source: source, width: 640, height: 360),
               let graded = apply(lut: lut, to: base) else { return false }
         return writePNG(graded, size: CGSize(width: 640, height: 360), to: largeURL)
             && writePNG(graded, size: CGSize(width: 192, height: 108), to: smallURL)
     }
 
-    /// In-memory preview of the LUT applied to the reference gradient, for UI.
-    public static func previewImage(lut: CubeLUT, width: Int = 320, height: Int = 180) -> CGImage? {
-        guard let base = baseImage(width: width, height: height),
+    /// In-memory preview of the LUT applied to `source` (or the reference
+    /// gradient when nil), for UI.
+    public static func previewImage(lut: CubeLUT, source: CGImage? = nil,
+                                    width: Int = 320, height: Int = 180) -> CGImage? {
+        guard let base = base(source: source, width: width, height: height),
               let graded = apply(lut: lut, to: base) else { return nil }
         let ciContext = CIContext(options: [.useSoftwareRenderer: false])
         return ciContext.createCGImage(graded, from: CGRect(x: 0, y: 0, width: width, height: height))
+    }
+
+    /// Loads an image file and normalizes it to an sRGB, aspect-filled bitmap
+    /// suitable as a preview/thumbnail source.
+    public static func loadImage(url: URL, width: Int = 640, height: Int = 360) -> CGImage? {
+        guard let src = CGImageSourceCreateWithURL(url as CFURL, nil),
+              let image = CGImageSourceCreateImageAtIndex(src, 0, [kCGImageSourceShouldCache: false] as CFDictionary)
+        else { return nil }
+        return aspectFill(image, width: width, height: height)
+    }
+
+    private static func base(source: CGImage?, width: Int, height: Int) -> CGImage? {
+        guard let source else { return baseImage(width: width, height: height) }
+        if source.width == width && source.height == height { return source }
+        return aspectFill(source, width: width, height: height)
+    }
+
+    /// Center-crop scale into an sRGB context (also normalizes exotic color
+    /// spaces/formats so CIColorCube sees plain sRGB pixels).
+    private static func aspectFill(_ image: CGImage, width: Int, height: Int) -> CGImage? {
+        let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
+        guard let ctx = CGContext(data: nil, width: width, height: height,
+                                  bitsPerComponent: 8, bytesPerRow: width * 4,
+                                  space: colorSpace,
+                                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        ctx.interpolationQuality = .high
+        let scale = max(CGFloat(width) / CGFloat(image.width), CGFloat(height) / CGFloat(image.height))
+        let w = CGFloat(image.width) * scale, h = CGFloat(image.height) * scale
+        ctx.draw(image, in: CGRect(x: (CGFloat(width) - w) / 2, y: (CGFloat(height) - h) / 2, width: w, height: h))
+        return ctx.makeImage()
     }
 
     // A hue sweep with a vertical white->black falloff plus a neutral gray ramp

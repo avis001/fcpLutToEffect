@@ -1,4 +1,5 @@
 import Foundation
+import CoreGraphics
 import LutFxKit
 
 let usage = """
@@ -13,6 +14,10 @@ OPTIONS:
   --force             Overwrite effects that already exist
   --dry-run           Show what would happen without writing anything
   --no-thumbnails     Skip generating effect thumbnails
+  --thumbnail-image <path>
+                      Render effect thumbnails from this image (e.g. a
+                      screenshot of your footage) instead of the built-in
+                      gradient
   --list-installed    List installed LUT effects and exit (no input path needed)
   -h, --help          Show this help
 
@@ -27,6 +32,7 @@ var categoryArg: String?
 var force = false
 var dryRun = false
 var thumbnails = true
+var thumbnailImagePath: String?
 var inputPath: String?
 
 while !args.isEmpty {
@@ -38,6 +44,9 @@ while !args.isEmpty {
     case "--force": force = true
     case "--dry-run": dryRun = true
     case "--no-thumbnails": thumbnails = false
+    case "--thumbnail-image":
+        guard !args.isEmpty else { fail("--thumbnail-image requires a path") }
+        thumbnailImagePath = args.removeFirst()
     case "--list-installed":
         let root = Installer(category: "", force: false, dryRun: true, makeThumbnails: false).effectsRoot
         let effects = EffectLibrary.installedEffects(effectsRoot: root)
@@ -93,7 +102,15 @@ if isDir.boolValue {
 guard !cubeFiles.isEmpty else { fail("no .cube files found in \(input.path)") }
 
 let category = categoryArg ?? (isDir.boolValue ? input.lastPathComponent : "LUTs")
-let installer = Installer(category: category, force: force, dryRun: dryRun, makeThumbnails: thumbnails)
+var thumbnailSource: CGImage?
+if let thumbnailImagePath {
+    let imageURL = URL(fileURLWithPath: (thumbnailImagePath as NSString).expandingTildeInPath)
+    thumbnailSource = Thumbnail.loadImage(url: imageURL)
+    guard thumbnailSource != nil else { fail("could not read image: \(imageURL.path)") }
+}
+
+let installer = Installer(category: category, force: force, dryRun: dryRun,
+                          makeThumbnails: thumbnails, thumbnailSource: thumbnailSource)
 
 print("Installing \(cubeFiles.count) LUT\(cubeFiles.count == 1 ? "" : "s") into category \"\(category)\"\(dryRun ? " (dry run)" : "")")
 print("  effects:  \(installer.effectsRoot.path)/\(category)/")
